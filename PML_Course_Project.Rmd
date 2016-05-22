@@ -1,0 +1,124 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Jim J. Yan"
+date: "21 May 2016"
+output: html_document
+---
+```{r setup, include=FALSE}
+# turn on cache
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+#Overview
+
+This project is to predict how well people perform barbell lifts by using movement data collected by devices such as Jawbone Up, Nike FuelBand, and Fitbit. The 6 participants were asked to perform barbell lifts correctly and incorrectly in 5 different ways. Data was collected from accelerometers on the belt, forearm, arm, and dumbell of participants. I build a machine learning algorithm using Random Forest Model and apply this predict algorithm to predict the outcome (classe) of test dataset.
+
+
+#Library prepairation
+
+In order to ensure the project result is reproducable, I need to load appropriate packages for this project.
+
+```{r, echo=TRUE}
+library(caret)
+library(randomForest)
+```
+
+#Downloading data
+
+The goal of this project is to create a model based on variables provided to predict the manner in which a person did the exercise. The manners of exercise was defined at 5 different levels (A~E) as "classe" variable in the data set.
+
+The data used in this project was obtained from this website: [http://groupware.les.inf.puc-rio.br/har](http://groupware.les.inf.puc-rio.br/har) (see the section on the Weight Lifting Exercise Dataset).
+
+The training data for this project are available here: [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
+
+The test data are available here: [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv)
+
+```{r, echo=TRUE}
+trainURL <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testURL <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+train_raw <- read.csv(url(trainURL), na.strings=c("NA","#DIV/0!",""))
+test_raw <- read.csv(url(testURL), na.strings=c("NA","#DIV/0!",""))
+```
+
+#Data cleanup and feature selection 
+```{r, echo=TRUE}
+dim(train_raw)
+```
+I can see there were 160 columns in the training dataset. Then I will remove the first 7 columns were obviously not relevant to my prediction modelling.
+
+```{r, echo=TRUE}
+train <- train_raw[,8:length(train_raw)]
+```
+
+Next, I will remove those columns were mostly "NA" based on a 60% threshold from my training dataset.
+```{r, echo=TRUE}
+train2 <- train
+    for(i in 1:length(train)) { 
+            #Check if NAs is more than 60% of whole column
+            if( sum( is.na( train[, i] ) ) / nrow(train) >= 0.6 ) { 
+                for(j in 1:length(train2)) {
+                    #Remove the column was mostly NA 
+                    if( length( grep(names(train[i]), names(train2)[j]) ) == 1)  { 
+                        train2 <- train2[ , -j] 
+                    }   
+                } 
+            }
+    }
+```
+
+Then I need to check if there is still any near zero variance predictor in my training dataset.
+```{r, echo=TRUE}
+nearZeroVar(train2, saveMetrics = TRUE)
+dim(train2)
+```
+Now there is no near zero variance predictor in the training dataset, and the predictors of training dataset has been reduced to 53. This will help to reduce the variance of the prediction modelling.
+
+#Spliting training data
+
+After cleaning the data, I need to randomly split the training data set into 2 subsets: 60% for training purpose and 40% for cross validation purpose. 
+
+```{r, echo=TRUE}
+set.seed(777)
+inTrain <- createDataPartition(y=train2$classe, p=0.6, list=FALSE)
+train_sub1 <- train2[inTrain, ]
+test_sub1 <- train2[-inTrain, ]
+```
+
+
+#Building ML algorithm for prediction: Random Forest Model
+
+I am trying to build my machine learning algorithm using random forest model becuase it is one of the most used/accurate algorithms for classification problems. 
+
+To make the prediction reproducible, I set a fixed seed before my prediction model training. Then I will build my prediction model with randomForest() funciton based on the subset of training data. 
+
+```{r, echo=TRUE}
+set.seed(777)
+modFit_RF <- randomForest(classe~., data = train_sub1)
+```
+
+#Cross validation
+
+After model is created, I will use the model to predict the classe on my subset of testing data for cross validation.
+
+```{r, echo=TRUE}
+predictions_RF <- predict(modFit_RF, test_sub1, type = "class")
+confusionMatrix(predictions_RF, test_sub1$classe)
+```
+According the result of cross validation, the accuracy of my prediction algorithm was about 99%.
+
+#Out of sample error
+
+The out of sample error rate is the erro rate I got in the new data set, which was the error rate I got on my testing subset of training data. According to the resilt of the cross validation, the out of sample error rate of my prediction algorithm was:
+    **1 - 0.9911 = 0.0089**
+
+#Model selection
+Since the accuracy and out of sample error of my prediction algorithm was satisfying, I am going to use this as the final prediction algorithm without trying other prediction models.
+
+#Predict the final test dataset
+
+The the end, I applied my prediction algorithm to the testing dataset to predict the classe. And the result of prediction was presented as the following:
+
+```{r, echo=TRUE}
+predictions_test <- predict(modFit_RF, test_raw, type = "class")
+print(predictions_test)
+```
