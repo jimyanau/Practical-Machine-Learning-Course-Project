@@ -116,7 +116,7 @@ Since the accuracy and out of sample error of my prediction algorithm was satisf
 
 #Predict the final test dataset
 
-The the end, I applied my prediction algorithm to the testing dataset to predict the classe. And the result of prediction was presented as the following:
+At the end, I applied my prediction algorithm to the testing dataset to predict the classe. And the result of prediction was presented as the following:
 
 ```{r, echo=TRUE}
 predictions_test <- predict(modFit_RF, test_raw, type = "class")

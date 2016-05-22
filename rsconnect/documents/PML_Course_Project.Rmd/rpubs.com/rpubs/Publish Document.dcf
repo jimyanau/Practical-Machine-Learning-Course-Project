@@ -1,0 +1,7 @@
+name: Publish Document
+account: rpubs
+server: rpubs.com
+bundleId:
+        https://api.rpubs.com/api/v1/document/182765/b2fc652b42e4434f8ce1a1e4545beafb
+url: http://rpubs.com/JingjunYan/182765
+when: 1463907352.57026
